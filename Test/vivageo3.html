@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Voice Controlled Notes App</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shoelace-css/1.0.0-beta16/shoelace.css">
+       
+        <!--Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <!-- font -->
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
+        integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous" />
+    <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <!-- font -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css" />>
+  </head>
+    <body>
+        <div class="container">
+
+            <h1>Which gas is responsible for global warming?</h1>
+            <h3>A.O2 B.CO2</h3>
+
+            <div class="app"> 
+                
+                <div class="input-single">
+                    <textarea id="note-textarea" placeholder="Your Answer" rows="6"></textarea>
+                </div>         
+                <button onmouseover="PlaySound('start')" onmouseout="StopSound('start')" id="start-record-btn"
+                class="btn btn-primary button mt-0 mb-0" title="Start Recording">Start<i class="fas fa-play-circle"></i>
+                </button>
+                <button onmouseover="PlaySound('stop')" onmouseout="StopSound('stop')" id="stop-record-btn"
+                class="btn btn-primary button mt-0 mb-0" title="stop Recording">Stop<i class="fas fa-stop-circle"></i>
+                </button> 
+                <button onmouseover="PlaySound('next')" onmouseout="StopSound('next')" id="next-btn"
+                class="btn btn-primary button mt-0 mb-0" title="Next">Next<i class="fas fa-stop-circle"></i>
+                </button> 
+
+
+                <p id="recording-instructions">Press the <strong>Start Recognition</strong> button and allow access.</p>
+
+            </div>
+
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script >try {
+            var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            var recognition = new SpeechRecognition();
+          }
+          catch(e) {
+            console.error(e);
+            $('.no-browser-support').show();
+            $('.app').hide();
+          }
+          
+          
+          var noteTextarea = $('#note-textarea');
+          var instructions = $('#recording-instructions');
+          
+          var noteContent = '';
+          
+          
+          /*-----------------------------
+                Voice Recognition 
+          ------------------------------*/
+          
+          // If false, the recording will stop after a few seconds of silence.
+          // When true, the silence period is longer (about 15 seconds),
+          // allowing us to keep recording even when the user pauses. 
+          recognition.continuous = true;
+          
+          // This block is called every time the Speech APi captures a line. 
+          recognition.onresult = function(event) {
+          
+            // event is a SpeechRecognitionEvent object.
+            // It holds all the lines we have captured so far. 
+            // We only need the current one.
+            var current = event.resultIndex;
+          
+            // Get a transcript of what was said.
+            var transcript = event.results[current][0].transcript;
+          
+            
+          
+            // Add the current transcript to the contents of our Note.
+            // There is a weird bug on mobile, where everything is repeated twice.
+            // There is no official solution so far so we have to handle an edge case.
+            var mobileRepeatBug = (current == 1 && transcript == event.results[0][0].transcript);
+          
+            if(!mobileRepeatBug) {
+              noteContent += transcript;
+              noteTextarea.val(noteContent);
+            }
+          };
+          
+          recognition.onstart = function() { 
+            instructions.text('Voice recognition activated. Try speaking into the microphone.');
+          }
+          
+          recognition.onspeechend = function() {
+            instructions.text('You were quiet for a while so voice recognition turned itself off.');
+          }
+          
+          recognition.onerror = function(event) {
+            if(event.error == 'no-speech') {
+              instructions.text('No speech was detected. Try again.');  
+            };
+          }
+          
+          
+          
+          /*-----------------------------
+                App buttons and input 
+          ------------------------------*/
+          
+          $('#start-record-btn').on('click', function(e) {
+            if (noteContent.length) {
+              noteContent += ' ';
+            }
+            recognition.start();
+            readOutLoud("Which gas is responsible for global warming? your options are A,O2 , B,CO2")
+          });
+          
+          
+          
+          // Sync the text inside the text area with the noteContent variable.
+          noteTextarea.on('input', function() {
+            noteContent = $(this).val();
+          })
+          
+          $('#stop-record-btn').on('click', function(e) {
+            recognition.stop();
+          
+            if(noteContent=='CO2') {
+              instructions.text('YOUR ANS IS RIGHT');
+              instructions.text('SCORE:1');
+              readOutLoud('correct , right answer is CO2')
+              readOutLoud('your score is one')
+            }
+            else {
+              instructions.text('YOUR ANS IS WRONG');
+        
+              instructions.text('SCORE:0');
+              readOutLoud('wrong  , right answer is CO2')
+              readOutLoud(' your score is zero')
+        
+            }
+                
+          })
+          
+          $('#next-btn').on('click', function(e) {
+            change();
+          })
+          /*-----------------------------
+                Speech Synthesis 
+          ------------------------------*/
+          
+          function readOutLoud(message) {
+              var speech = new SpeechSynthesisUtterance();
+              speech.lang='en-US';
+            // Set the text and voice attributes.
+              speech.text = message;
+              speech.volume = 1;
+              speech.rate = 1;
+              speech.pitch = 1;
+            
+              window.speechSynthesis.speak(speech);
+          }
+
+          function change() {
+            window.location.href = "../home.html";
+          }
+          function StopSound(soundobj) {
+      var thissound = document.getElementById(soundobj);
+      thissound.pause();
+      thissound.currentTime = 0;
+    }
+
+    function PlaySound(soundobj) {
+      var thissound = document.getElementById(soundobj);
+      thissound.play();
+
+    }
+
+          
+          
+        
+        </script>
+
+<audio id="next" src="assets/audio/nextpage.mp3" type="audio/mp3"></audio>
+<audio id="start" src="assets/audio/start.mp3" type="audio/mp3"></audio>
+<audio id="stop" src="assets/audio/stop.mp3" type="audio/mp3"></audio>
+
+    </body>
+</html>
